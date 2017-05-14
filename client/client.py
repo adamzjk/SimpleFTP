@@ -1,25 +1,41 @@
-import sys, socket, os, re, time
+import re
+import time
+import socket
+import threading
+from utils.logtools import LogTool
 
-class FTPClient:
-  def __init__(self):
+class ClientThread(threading.Thread):
+
+  def __init__(self, server_addr, server_port):
+    super().__init__()
+    self.server_addr = server_addr
+    self.server_port = server_port
     self.controlSock = None
     self.bufSize = 1024
     self.connected = False
     self.loggedIn = False
-    self.dataMode = 'PORT'
     self.dataAddr = None
+    self.current_dir = ''
+    self.msg_coding = 'ascii'
+    self.log = LogTool("client.log")
 
-  def parseReply(self):
-    if self.controlSock == None:
-      return
+  def confirm(self, get_replay = False):
+    if self.controlSock is None:
+      return False
     try:
-      reply = self.controlSock.recv(self.bufSize).decode('ascii')
-    except (socket.timeout):
-      return
+      reply = self.controlSock.recv(self.bufSize).decode(self.msg_coding)
+    except socket.timeout:
+      return False
     else:
       if 0 < len(reply):
-        print('<< ' + reply.strip().replace('\n', '\n<< '))
-        return (int(reply[0]), reply)
+        reply = reply.strip()
+        if reply.split()[0] == '[Error]':
+          if not self.log.screen_print: print('Server: ' + reply)
+          self.log.write('Server:' + reply, color='Red')
+        else:
+          self.log.write('Server:' + reply)
+        if get_replay: return reply.split()[0] != '[Error]', reply
+        return reply.split()[0] != '[Error]'
       else:  # Server disconnected
         self.connected = False
         self.loggedIn = False
@@ -27,77 +43,67 @@ class FTPClient:
         self.controlSock = None
 
   def connect(self, host, port):
-    if self.controlSock != None:  # Close existing socket first
+    if self.controlSock is not None:  # Close existing socket first
       self.connected = False
       self.loggedIn = False
       self.controlSock.close()
     self.controlSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
     self.controlSock.connect((host, port))
-    if self.parseReply()[0] <= 3:
+    if self.confirm():
       self.connected = True
-      self.controlSock.settimeout(1.0)  # Timeout 1 second
+      self.controlSock.settimeout(3)  # Timeout 1 second
+      self.controlSock.send(b'establish')
+      confirmed, reply = self.confirm(get_replay=True)
+      if confirmed:
+        m = re.search(r'(\d+).(\d+).(\d+).(\d+):(\d+),(\d+)', reply)
+        self.dataAddr = (m.group(1) + '.' + m.group(2) + '.' + m.group(3) +
+                         '.' + m.group(4), int(m.group(5)) * 256 + int(m.group(6)))
 
-  def login(self, user, password):
+  def login(self):
     if not self.connected:
       return
     self.loggedIn = False
-    self.controlSock.send(('USER %s\r\n' % user).encode('ascii'))
-    if self.parseReply()[0] <= 3:
-      self.controlSock.send(('PASS %s\r\n' % password).encode('ascii'))
-      if self.parseReply()[0] <= 3:
-        self.loggedIn = True
+    self.controlSock.send('login Zjk Zjk'.encode(self.msg_coding))
+    if self.confirm():
+      self.loggedIn = True
 
-  def quit(self):
+  def close(self):
     if not self.connected:
       return
-    self.controlSock.send(b'QUIT\r\n')
-    self.parseReply()
+    self.controlSock.send(b'close\r\n')
+    self.confirm()
     self.connected = False
     self.loggedIn = False
     self.controlSock.close()
     self.controlSock = None
 
-  def pwd(self):
+  def pwd(self, is_print = True):
     if not self.connected or not self.loggedIn:
       return
-    self.controlSock.send(b'PWD\r\n')
-    self.parseReply()
+    self.controlSock.send(b'pwd\r\n')
+    confirmed, reply = self.confirm(get_replay=True)
+    if is_print: print(reply.split()[1])
+    self.current_dir = reply.split()[1]
 
-  def cwd(self, path):
+  def cd(self, path):
     if not self.connected or not self.loggedIn:
       return
-    self.controlSock.send(('CWD %s\r\n' % path).encode('ascii'))
-    self.parseReply()
+    self.controlSock.send(('cd %s\r\n' % path).encode(self.msg_coding))
+    confirmed, reply = self.confirm(get_replay=True)
+    if confirmed: self.current_dir = reply.split()[1]
 
   def help(self):
     if not self.connected or not self.loggedIn:
       return
-    self.controlSock.send(b'HELP\r\n')
-    self.parseReply()
+    self.controlSock.send(b'help\r\n')
+    self.confirm()
 
-  def type(self, t):
+  def ls(self, cmd):
     if not self.connected or not self.loggedIn:
-      return
-    self.controlSock.send(('TYPE %s\r\n' % t).encode('ascii'))
-    self.parseReply()
-
-  def pasv(self):
-    self.controlSock.send(b'PASV\r\n')
-    reply = self.parseReply()
-    if reply[0] <= 3:
-      m = re.search(r'(\d+),(\d+),(\d+),(\d+),(\d+),(\d+)', reply[1])
-      self.dataAddr = (
-      m.group(1) + '.' + m.group(2) + '.' + m.group(3) + '.' + m.group(4), int(m.group(5)) * 256 + int(m.group(6)))
-      self.dataMode = 'PASV'
-
-  def nlst(self):
-    if not self.connected or not self.loggedIn:
-      return
-    if self.dataMode != 'PASV':  # Currently only PASV is supported
       return
     dataSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
     dataSock.connect(self.dataAddr)
-    self.controlSock.send(b'NLST\r\n')
+    self.controlSock.send('{} \r\n'.format(cmd).encode(self.msg_coding))
     time.sleep(0.5)  # Wait for connection to set up
     dataSock.setblocking(False)  # Set to non-blocking to detect connection close
     while True:
@@ -105,20 +111,20 @@ class FTPClient:
         data = dataSock.recv(self.bufSize)
         if len(data) == 0:  # Connection close
           break
-        print(data.decode('utf8').strip())
-      except (socket.error):  # Connection closed
+        data = data.decode('utf8').split()
+        for i in range(0,len(data) - 1,2):
+          print('{:<25}{:<25}'.format(data[i], data[i + 1]))
+      except socket.error:  # Connection closed
         break
     dataSock.close()
-    self.parseReply()
+    self.confirm()
 
-  def retr(self, filename):
+  def get(self, filename):
     if not self.connected or not self.loggedIn:
-      return
-    if self.dataMode != 'PASV':  # Currently only PASV is supported
       return
     dataSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
     dataSock.connect(self.dataAddr)
-    self.controlSock.send(('RETR %s\r\n' % filename).encode('ascii'))
+    self.controlSock.send(('get %s\r\n' % filename).encode(self.msg_coding))
     fileOut = open(filename, 'wb')
     time.sleep(0.5)  # Wait for connection to set up
     dataSock.setblocking(False)  # Set to non-blocking to detect connection close
@@ -128,20 +134,55 @@ class FTPClient:
         if len(data) == 0:  # Connection close
           break
         fileOut.write(data)
-      except (socket.error):  # Connection closed
+      except socket.error:  # Connection closed
         break
     fileOut.close()
     dataSock.close()
-    self.parseReply()
+    self.confirm()
 
-  def stor(self, filename):
+  def put(self, filename):
     if not self.connected or not self.loggedIn:
-      return
-    if self.dataMode != 'PASV':  # Currently only PASV is supported
       return
     dataSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
     dataSock.connect(self.dataAddr)
-    self.controlSock.send(('STOR %s\r\n' % filename).encode('ascii'))
+    self.controlSock.send(('put %s\r\n' % filename).encode(self.msg_coding))
     dataSock.send(open(filename, 'rb').read())
     dataSock.close()
-    self.parseReply()
+    self.confirm()
+
+  def run(self):
+    self.connect(self.server_addr, self.server_port)
+    self.login()
+    self.pwd(is_print=False)
+    while True:
+      try:
+        cmd = input('ftp ' + self.current_dir + '>')
+        cmdHead = cmd.split()[0].lower()
+        self.log.write('>>' + cmd)
+        if cmdHead == 'close':  # QUIT
+          self.close()
+          break
+        elif cmdHead == 'help':  # HELP
+          self.help()
+        elif cmdHead == 'pwd':  # PWD
+          self.pwd()
+        elif cmdHead == 'cd':  # CWD
+          self.cd(cmd.split()[1])
+        elif cmdHead == 'ls':  # NLST
+          self.ls(cmd)
+        elif cmdHead == 'get':
+          self.get(cmd.split()[1])
+        elif cmdHead == 'put':
+          self.put(cmd.split()[1])
+        elif cmdHead == 'debug':
+          self.log.screen_print = bool(cmd.split()[1])
+        else:
+          self.log.write('unknown command' + cmd, color='Red')
+      except IndexError:
+        print("[Error] Too few argument")
+
+
+if __name__ == '__main__':
+  ClientThread("127.0.0.1", 23333).start()
+
+
