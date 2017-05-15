@@ -80,9 +80,12 @@ class ServerThread(threading.Thread):
     self.data_listen_socket.listen(3)
     DataSocketListingThread(self).start()
     time.sleep(0.5)  # Wait for connection to set up
-    self.ctr_socket.send(('%s.%s.%s.%s:%d,%d\r\n' % (
+    # self.ctr_socket.send(('%s.%s.%s.%s:%d,%d\r\n' % (
+    #   self.data_addr.split('.')[0], self.data_addr.split('.')[1], self.data_addr.split('.')[2],
+    #   self.data_addr.split('.')[3], int(self.data_port / 256), self.data_port % 256)).encode(self.msg_encode))
+    self.ctr_socket.send(('%s.%s.%s.%s:%d\r\n' % (
       self.data_addr.split('.')[0], self.data_addr.split('.')[1], self.data_addr.split('.')[2],
-      self.data_addr.split('.')[3], int(self.data_port / 256), self.data_port % 256)).encode(self.msg_encode))
+      self.data_addr.split('.')[3], int(self.data_port))).encode(self.msg_encode))
 
   def _login(self, cmd):
     if len(cmd.split()) < 2:
@@ -148,18 +151,19 @@ class ServerThread(threading.Thread):
     elif self.data_socket is not None:  # Only PASV implemented
       programDir = os.getcwd()
       os.chdir(os.getcwd())
-      self.ctr_socket.send(b'Start Transfering.')
       fileName = cmd.split()[1]
       try:
         self.data_socket.send(open(fileName, 'rb').read())
       except IOError:
-        self.ctr_socket.send(b'[Error] Requested action not taken.')
+        self.ctr_socket.send(b'[Error] IO Error! Check your network.')
+      except FileNotFoundError:
+        self.ctr_socket.send(b'[Error] File Not Found!')
       self.data_socket.close()
       self.data_socket = None
       self.ctr_socket.send(b'Transfer Successful, Close connection.')
       os.chdir(programDir)
     else:
-      self.ctr_socket.send(b"[Error] Can't open data connection.")
+      self.ctr_socket.send(b"[Error] Can't setup data connection.")
 
   def _put(self, cmd):
     if not self.login:
@@ -169,7 +173,9 @@ class ServerThread(threading.Thread):
     elif self.data_socket is not None:  # Only PASV implemented
       programDir = os.getcwd()
       os.chdir(os.getcwd())
-      self.ctr_socket.send(b'Data connection already open; transfer starting.')
+      if os.path.exists(cmd.split()[1]):
+        ctr_socket.send(b'[Error] File Already Exists! Delete First!')
+        return
       fileOut = open(cmd.split()[1], 'wb')
       time.sleep(0.5)  # Wait for connection to set up
       self.data_socket.setblocking(False)  # Set to non-blocking to detect connection close
@@ -213,7 +219,7 @@ class ServerThread(threading.Thread):
             os.remove(filename)
         self.ctr_socket.send(b'Remove Sucessfull')
       except OSError:
-        self.ctr_socket.send(b'[Error] No such file.')
+        self.ctr_socket.send(b'[Error] OS Error. No Such File')
 
 
   def _close(self):
@@ -238,34 +244,36 @@ class ServerThread(threading.Thread):
       elif cmd == 'establish':
         self.EstablishDataConnection()
         continue
+      elif cmd is None: # some error...
+        continue
       self.log.write('[' + (self.username if self.login else '') + '] ' + cmd.strip(), self.cli_addr)
-      cmdHead = cmd.split()[0].lower() if cmd else None
-      if cmdHead == 'close':  # QUIT
+      cmd_head = cmd.split()[0].lower() if cmd else None
+      if cmd_head == 'close':  # QUIT
         self._close()
-      elif cmdHead == 'help':  # HELP
+      elif cmd_head == 'help':  # HELP
         self._help()
-      elif cmdHead == 'login':
+      elif cmd_head == 'login':
         self._login(cmd)
-      elif cmdHead == 'pwd':  # PWD
+      elif cmd_head == 'pwd':  # PWD
         self._pwd()
-      elif cmdHead == 'cd':  # CWD
+      elif cmd_head == 'cd':  # CWD
         self._cd(cmd)
-      elif cmdHead == 'ls':  # NLST
+      elif cmd_head == 'ls':  # NLST
         self._ls(cmd)
-      elif cmdHead == 'get':
+      elif cmd_head == 'get':
         self._get(cmd)
-      elif cmdHead == 'put':
+      elif cmd_head == 'put':
         self._put(cmd)
-      elif cmdHead == 'mkdir':
+      elif cmd_head == 'mkdir':
         self._mkdir(cmd)
-      elif cmdHead == 'rm':
+      elif cmd_head == 'rm':
         self._rm(cmd)
       else:
-        self.ctr_socket.send(('[Error] Unrecognized Command: ' + cmdHead).encode(self.msg_encode))
+        self.ctr_socket.send(('[Error] Unrecognized Command: ' + cmd_head).encode(self.msg_encode))
 
 
 if __name__ == '__main__':
-  server_addr = '127.0.0.1'
+  server_addr = '0.0.0.0'
   server_port = 23333
   server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
   server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

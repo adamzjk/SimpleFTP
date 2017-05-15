@@ -6,3 +6,120 @@
 [2017/05/14 23:23:11] Server:Transfer Successful, Close connection.
 [2017/05/14 23:23:18] >>close
 [2017/05/14 23:23:18] Server:Service closing control connection. Logged out if appropriate.
+[2017/05/15 10:47:11] Server:Connection Set!
+[2017/05/15 10:47:12] Server:127.0.0.1:37,220
+[2017/05/15 10:47:12] Server:User logged in, proceed.
+[2017/05/15 10:47:12] Server:[dir] F:\share
+[2017/05/15 10:47:14] >>ls
+[2017/05/15 10:48:13] Server:Connection Set!
+[2017/05/15 10:48:13] Server:127.0.0.1:222,97
+[2017/05/15 10:48:13] Server:User logged in, proceed.
+[2017/05/15 10:48:13] Server:[dir] /Users/Adam
+[2017/05/15 10:48:18] >>ls
+[2017/05/15 10:48:19] Server:Transfer Successful, Close connection.
+[2017/05/15 10:48:27] >>cd caffe
+[2017/05/15 10:48:27] Server:[dir] /Users/Adam/caffe
+[2017/05/15 10:48:29] >>ls
+[2017/05/15 10:48:29] Server:Transfer Successful, Close connection.
+[2017/05/15 10:48:30] >>cd ..
+[2017/05/15 10:48:30] Server:[dir] /Users/Adam
+[2017/05/15 10:48:31] >>ls
+[2017/05/15 10:48:32] Server:Transfer Successful, Close connection.
+[2017/05/15 10:53:08] Server:Connection Set!
+[2017/05/15 10:53:09] Server:127.0.0.1:223,174
+[2017/05/15 10:53:09] Server:User logged in, proceed.
+[2017/05/15 10:53:09] Server:[dir] /Users/Adam
+[2017/05/15 10:53:14] >>ls
+[2017/05/15 10:53:14] Server:Transfer Successful, Close connection.
+[2017/05/15 10:53:28] >>cd adamrepo
+[2017/05/15 10:53:28] Server:[Error] No Such Directionary!
+[2017/05/15 10:53:33] >>cd adamrepo
+[2017/05/15 10:53:33] Server:[Error] No Such Directionary!
+[2017/05/15 10:53:37] >>cd AdamRepo
+[2017/05/15 10:53:37] Server:[Error] No Such Directionary!
+[2017/05/15 10:53:48] >>cd AdamPKGs
+[2017/05/15 10:53:48] Server:[Error] No Such Directionary!
+[2017/05/15 10:53:50] >>cd ..
+[2017/05/15 10:53:50] Server:[dir] /Users/Adam
+[2017/05/15 10:53:52] >>cd
+[2017/05/15 10:53:52] [Error] Too few argument
+[2017/05/15 10:53:54] >>cd ~
+[2017/05/15 10:53:54] Server:[dir] /Users/Adam
+[2017/05/15 10:53:59] >>cd Python
+[2017/05/15 10:53:59] Server:[dir] /Users/Adam/Python
+[2017/05/15 10:54:02] >>cd ..
+[2017/05/15 10:54:02] Server:[dir] /Users/Adam
+[2017/05/15 10:54:02] >>ls
+[2017/05/15 10:54:03] Server:Transfer Successful, Close connection.
+[2017/05/15 10:54:06] >>cd AdamPKGs
+[2017/05/15 10:54:06] Server:[dir] /Users/Adam/AdamPKGs
+[2017/05/15 10:54:08] >>ls
+[2017/05/15 10:54:08] Server:Transfer Successful, Close connection.
+[2017/05/15 10:54:18] >>cd darkflow_pld
+[2017/05/15 10:54:18] Server:[Error] No Such Directionary!
+[2017/05/15 10:54:24] >>cd darkflow_old
+[2017/05/15 10:54:24] Server:[dir] /Users/Adam/AdamPKGs/darkflow_old
+[2017/05/15 10:54:25] >>ls
+[2017/05/15 10:54:25] Server:Transfer Successful, Close connection.
+[2017/05/15 10:55:06] >>put video.avi
+[2017/05/15 10:55:07] Server:Data connection already open; transfer starting.
+[2017/05/15 10:55:23] >>put 123123
+[2017/05/15 10:52:51] Server:Connection Set!
+[2017/05/15 10:52:51] Server:127.0.0.1:223,172
+[2017/05/15 10:52:51] Server:User logged in, proceed.
+[2017/05/15 10:52:51] Server:[dir] /Users/Adam
+[2017/05/15 10:53:15] >>ls
+[2017/05/15 10:53:16] Server:Transfer Successful, Close connection.
+[2017/05/15 10:53:20] >>cd Desktop
+[2017/05/15 10:53:20] Server:[dir] /Users/Adam/Desktop
+[2017/05/15 10:53:22] >>ls
+[2017/05/15 10:53:23] Server:Transfer Successful, Close connection.
+[2017/05/15 10:54:28] >>ls
+[2017/05/15 10:54:28] Server:Transfer Successful, Close connection.
+[2017/05/15 10:54:35] >>get video.avi
+[2017/05/15 10:54:35] Server:Start Transfering.Transfer Successful, Close connection.
+[2017/05/15 11:13:34] Server:Connection Set!
+[2017/05/15 11:13:35] Server:127.0.0.1:226,102
+[2017/05/15 11:13:35] Server:User logged in, proceed.
+[2017/05/15 11:13:35] Server:[dir] /Users/Adam
+[2017/05/15 11:13:38] >>cd adamrepo
+[2017/05/15 11:13:38] Server:[dir] /Users/Adam/AdamRepo
+[2017/05/15 11:13:39] >>ls
+[2017/05/15 11:13:40] Server:Transfer Successful, Close connection.
+[2017/05/15 11:13:43] >>get asdasd
+[2017/05/15 11:13:43] Server:[Error] IO Error! Check your network.Transfer Successful, Close connection.
+[2017/05/15 11:13:47] >>rm asascqca
+[2017/05/15 11:13:47] Server:[Error] OS Error.
+[2017/05/15 11:14:11] >>ls
+[2017/05/15 11:14:11] Server:Transfer Successful, Close connection.
+[2017/05/15 11:14:43] >>put test.txt
+[2017/05/15 11:14:43] Server:Data connection already open; transfer starting.[Error] File Already Exists! Delete First!
+[2017/05/15 11:17:58] Server:Connection Set!
+[2017/05/15 11:17:59] Server:127.0.0.1:226,133
+[2017/05/15 11:17:59] Server:User logged in, proceed.
+[2017/05/15 11:17:59] Server:[dir] /Users/Adam
+[2017/05/15 11:18:03] [Error] Too few argument
+[2017/05/15 11:18:05] >>asd
+[2017/05/15 11:18:05] unknown commandasd
+[2017/05/15 11:18:06] >>qwcasc
+[2017/05/15 11:18:06] unknown commandqwcasc
+[2017/05/15 11:18:07] >>qwcasc
+[2017/05/15 11:18:07] unknown commandqwcasc
+[2017/05/15 11:18:08] >>12312d
+[2017/05/15 11:18:08] unknown command12312d
+[2017/05/15 11:22:35] Server:Connection Set!
+[2017/05/15 11:22:35] Server:127.0.0.1:57997
+[2017/05/15 11:22:35] Server:User logged in, proceed.
+[2017/05/15 11:22:35] Server:[dir] /Users/Adam
+[2017/05/15 11:22:37] >>ls
+[2017/05/15 11:22:37] Server:[Error] Can't open data connection.
+[2017/05/15 11:22:39] >>ls
+[2017/05/15 11:22:40] Server:Transfer Successful, Close connection.
+[2017/05/15 11:23:09] >>ls
+[2017/05/15 11:23:09] Server:Transfer Successful, Close connection.
+[2017/05/15 11:23:20] >>cd adamrepo
+[2017/05/15 11:23:20] Server:[dir] /Users/Adam/AdamRepo
+[2017/05/15 11:23:21] >>ls
+[2017/05/15 11:23:21] Server:Transfer Successful, Close connection.
+[2017/05/15 11:23:27] >>get test.txt
+[2017/05/15 11:23:27] [Error] File Already Exists!

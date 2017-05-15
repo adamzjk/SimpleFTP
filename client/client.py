@@ -1,4 +1,6 @@
 import re
+import os
+import sys
 import time
 import socket
 import threading
@@ -55,9 +57,15 @@ class ClientThread(threading.Thread):
       self.controlSock.send(b'establish')
       confirmed, reply = self.confirm(get_replay=True)
       if confirmed:
-        m = re.search(r'(\d+).(\d+).(\d+).(\d+):(\d+),(\d+)', reply)
-        self.dataAddr = (m.group(1) + '.' + m.group(2) + '.' + m.group(3) +
-                         '.' + m.group(4), int(m.group(5)) * 256 + int(m.group(6)))
+        try:
+          # m = re.search(r'(\d+).(\d+).(\d+).(\d+):(\d+),(\d+)', reply)
+          # self.dataAddr = (m.group(1) + '.' + m.group(2) + '.' + m.group(3) +
+          #                  '.' + m.group(4), int(m.group(5)) * 256 + int(m.group(6)))
+          m = re.search(r'(\d+).(\d+).(\d+).(\d+):(\d+)', reply)
+          self.dataAddr = (m.group(1) + '.' + m.group(2) + '.' + m.group(3) +
+                           '.' + m.group(4), int(m.group(5)))
+        except:
+          self.log.write("[Error] Can't setup data connection!", color='Red')
 
   def login(self):
     if not self.connected:
@@ -123,6 +131,9 @@ class ClientThread(threading.Thread):
   def get(self, filename):
     if not self.connected or not self.loggedIn:
       return
+    if os.path.exists(filename):
+      self.log.write('[Error] File Already Exists!', color='Red')
+      return
     dataSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
     dataSock.connect(self.dataAddr)
     self.controlSock.send(('get %s\r\n' % filename).encode(self.msg_coding))
@@ -144,6 +155,8 @@ class ClientThread(threading.Thread):
   def put(self, filename):
     if not self.connected or not self.loggedIn:
       return
+    if not os.path.exists(filename):
+      self.log.write('[Error] File not exists!', color='Red')
     dataSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
     dataSock.connect(self.dataAddr)
     self.controlSock.send(('put %s\r\n' % filename).encode(self.msg_coding))
@@ -202,6 +215,6 @@ class ClientThread(threading.Thread):
 
 
 if __name__ == '__main__':
-  ClientThread("127.0.0.1", 23333).start()
+  ClientThread("0.0.0.0", 23333).start()
 
 
