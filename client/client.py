@@ -113,7 +113,8 @@ class ClientThread(threading.Thread):
           break
         data = data.decode('utf8').split()
         for i in range(0,len(data) - 1,2):
-          print('{:<25}{:<25}'.format(data[i], data[i + 1]))
+          print('{:<30}{:<30}'.format(data[i], data[i + 1]))
+        if len(data) % 2: print(data[-1])
       except socket.error:  # Connection closed
         break
     dataSock.close()
@@ -150,15 +151,27 @@ class ClientThread(threading.Thread):
     dataSock.close()
     self.confirm()
 
+  def mkdir(self, dirname):
+    if not self.connected or not self.loggedIn:
+      return
+    self.controlSock.send(('mkdir %s\r\n' % dirname).encode(self.msg_coding))
+    self.confirm()
+
+  def rm(self, filenames):
+    if not self.connected or not self.loggedIn:
+      return
+    self.controlSock.send(('rm %s\r\n' % filenames).encode(self.msg_coding))
+    self.confirm()
+
   def run(self):
     self.connect(self.server_addr, self.server_port)
     self.login()
     self.pwd(is_print=False)
     while True:
       try:
-        cmd = input('ftp ' + self.current_dir + '>')
+        cmd = input('ftp > ' + self.current_dir + ':')
         cmdHead = cmd.split()[0].lower()
-        self.log.write('>>' + cmd)
+        self.log.write('>>' + cmd, force_unprint=True)
         if cmdHead == 'close':  # QUIT
           self.close()
           break
@@ -174,12 +187,18 @@ class ClientThread(threading.Thread):
           self.get(cmd.split()[1])
         elif cmdHead == 'put':
           self.put(cmd.split()[1])
+        elif cmdHead == 'mkdir': # MKDIR
+          self.mkdir(cmd.split()[1])
+        elif cmdHead == 'rm':
+          self.rm(' '.join(cmd.split()[1:]))
         elif cmdHead == 'debug':
-          self.log.screen_print = bool(cmd.split()[1])
+          self.log.screen_print = int(cmd.split()[1])
         else:
           self.log.write('unknown command' + cmd, color='Red')
       except IndexError:
-        print("[Error] Too few argument")
+        self.log.write('[Error] Too few argument', color='Red')
+      except ValueError:
+        self.log.write('[Error] Value Error', color='Red')
 
 
 if __name__ == '__main__':

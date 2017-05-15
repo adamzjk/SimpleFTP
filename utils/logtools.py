@@ -16,7 +16,7 @@ class LogTool:
                   'Black' : '\033[90m',
                   'Default' : '\033[0m',}
 
-  def write(self, mssg, addr = None, color ='Magenta'):
+  def write(self, mssg, addr = None, color ='Magenta', force_unprint = False):
     ''' Write log '''
     if addr is None:
       log_string = '[' + time.strftime(r'%Y/%m/%d %H:%M:%S') + '] '  + mssg + '\n'
@@ -29,6 +29,6 @@ class LogTool:
                    + '] [' + str(addr[0]) + ':' + str(addr[1]) + '] ' \
                    + self.color['Default'] + mssg
     self.file.write(log_string)
-    if self.screen_print: print(prt_string)
+    if self.screen_print and not force_unprint: print(prt_string)
 
 

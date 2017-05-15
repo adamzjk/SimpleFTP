@@ -1,0 +1,8 @@
+[2017/05/14 23:23:07] Server:Connection Set!
+[2017/05/14 23:23:08] Server:127.0.0.1:209,215
+[2017/05/14 23:23:08] Server:User logged in, proceed.
+[2017/05/14 23:23:08] Server:[dir] /Users/Adam
+[2017/05/14 23:23:10] >>ls
+[2017/05/14 23:23:11] Server:Transfer Successful, Close connection.
+[2017/05/14 23:23:18] >>close
+[2017/05/14 23:23:18] Server:Service closing control connection. Logged out if appropriate.

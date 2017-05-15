@@ -2,6 +2,7 @@ import os
 import time
 import socket
 import threading
+import shutil
 from utils.logtools import LogTool
 
 class DataSocketListingThread(threading.Thread):
@@ -188,6 +189,33 @@ class ServerThread(threading.Thread):
     else:
       self.ctr_socket.send(b"[Error] Can't open data connection.")
 
+  def _mkdir(self, cmd):
+    if not self.login:
+      self.ctr_socket.send(b'[Error] Not logged in')
+    elif len(cmd.split()) < 2:
+      self.ctr_socket.send(b'[Error] Syntax error.')
+    else:
+      os.mkdir(cmd.split()[1])
+      self.ctr_socket.send(b'Create Directionary Success!')
+
+  def _rm(self, cmd):
+    if not self.login:
+      self.ctr_socket.send(b'[Error] Not logged in')
+    elif len(cmd.split()) < 2:
+      self.ctr_socket.send(b'[Error] Syntax error.')
+    else:
+      try:
+        if cmd.split()[1] == '-r': # remove folder
+          for filename in cmd.split()[2:]:
+            shutil.rmtree(filename) # WARNING, this will remove all contents inside folder
+        else:
+          for filename in cmd.split()[1:]: # remove files
+            os.remove(filename)
+        self.ctr_socket.send(b'Remove Sucessfull')
+      except OSError:
+        self.ctr_socket.send(b'[Error] No such file.')
+
+
   def _close(self):
     self.ctr_socket.send(b'Service closing control connection. Logged out if appropriate.')
     self.ctr_socket.close()
@@ -199,6 +227,7 @@ class ServerThread(threading.Thread):
     self.ctr_socket.close()
     self.log.write('Client disconnected.', self.cli_addr)
     self.keep_running = False
+
 
   def run(self):
     self.ctr_socket.send(b'Connection Set!')
@@ -227,6 +256,10 @@ class ServerThread(threading.Thread):
         self._get(cmd)
       elif cmdHead == 'put':
         self._put(cmd)
+      elif cmdHead == 'mkdir':
+        self._mkdir(cmd)
+      elif cmdHead == 'rm':
+        self._rm(cmd)
       else:
         self.ctr_socket.send(('[Error] Unrecognized Command: ' + cmdHead).encode(self.msg_encode))
 
