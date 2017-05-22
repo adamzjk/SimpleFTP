@@ -51,7 +51,6 @@ class ServerThread(threading.Thread):
     os.chdir(self.usr_dir)
     self.original_dir = os.getcwd()
 
-
     # 2, control socket for debug communication
     self.ctr_socket = ctr_socket
     self.cli_addr = cli_addr
