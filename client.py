@@ -4,7 +4,7 @@ import sys
 import time
 import socket
 import threading
-from utils.logtools import LogTool
+from logtools import LogTool
 
 class ClientThread(threading.Thread):
 
@@ -13,7 +13,7 @@ class ClientThread(threading.Thread):
     self.server_addr = server_addr
     self.server_port = server_port
     self.controlSock = None
-    self.bufSize = 1024
+    self.bufSize = 16 * 1024 * 1024
     self.connected = False
     self.loggedIn = False
     self.dataAddr = None
@@ -21,7 +21,7 @@ class ClientThread(threading.Thread):
     self.msg_coding = 'ascii'
     self.log = LogTool("client.log")
 
-  def confirm(self, get_replay = False):
+  def confirm(self, get_reply = False):
     if self.controlSock is None:
       return False
     try:
@@ -36,7 +36,7 @@ class ClientThread(threading.Thread):
           self.log.write('Server:' + reply, color='Red')
         else:
           self.log.write('Server:' + reply)
-        if get_replay: return reply.split()[0] != '[Error]', reply
+        if get_reply: return reply.split()[0] != '[Error]', reply
         return reply.split()[0] != '[Error]'
       else:  # Server disconnected
         self.connected = False
@@ -50,22 +50,39 @@ class ClientThread(threading.Thread):
       self.loggedIn = False
       self.controlSock.close()
     self.controlSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
+    self.controlSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     self.controlSock.connect((host, port))
     if self.confirm():
       self.connected = True
       self.controlSock.settimeout(3)  # Timeout 1 second
-      self.controlSock.send(b'establish')
-      confirmed, reply = self.confirm(get_replay=True)
-      if confirmed:
-        try:
-          # m = re.search(r'(\d+).(\d+).(\d+).(\d+):(\d+),(\d+)', reply)
-          # self.dataAddr = (m.group(1) + '.' + m.group(2) + '.' + m.group(3) +
-          #                  '.' + m.group(4), int(m.group(5)) * 256 + int(m.group(6)))
-          m = re.search(r'(\d+).(\d+).(\d+).(\d+):(\d+)', reply)
-          self.dataAddr = (m.group(1) + '.' + m.group(2) + '.' + m.group(3) +
-                           '.' + m.group(4), int(m.group(5)))
-        except:
-          self.log.write("[Error] Can't setup data connection!", color='Red')
+      # self.controlSock.send(b'establish')
+      # confirmed, reply = self.confirm(get_reply=True)
+      # if confirmed:
+      #   try:
+      #     # m = re.search(r'(\d+).(\d+).(\d+).(\d+):(\d+),(\d+)', reply)
+      #     # self.dataAddr = (m.group(1) + '.' + m.group(2) + '.' + m.group(3) +
+      #     #                  '.' + m.group(4), int(m.group(5)) * 256 + int(m.group(6)))
+      #     m = re.search(r'(\d+).(\d+).(\d+).(\d+):(\d+)', reply)
+      #     self.dataAddr = (m.group(1) + '.' + m.group(2) + '.' + m.group(3) +
+      #                      '.' + m.group(4), int(m.group(5)))
+      #     self.log.write("Log up data connection")
+      #   except:
+      #     self.log.write("[Error] Can't setup data connection!" + str(sys.exc_info()[0]), color='Red')
+
+  def EstablishDataConnection(self):
+    self.controlSock.send(b'establish')
+    confirmed, reply = self.confirm(get_reply=True)
+    if confirmed:
+      try:
+        # m = re.search(r'(\d+).(\d+).(\d+).(\d+):(\d+),(\d+)', reply)
+        # self.dataAddr = (m.group(1) + '.' + m.group(2) + '.' + m.group(3) +
+        #                  '.' + m.group(4), int(m.group(5)) * 256 + int(m.group(6)))
+        m = re.search(r'(\d+).(\d+).(\d+).(\d+):(\d+)', reply)
+        self.dataAddr = (m.group(1) + '.' + m.group(2) + '.' + m.group(3) +
+                         '.' + m.group(4), int(m.group(5)))
+        self.log.write("Log up data connection")
+      except Exception as error:
+        self.log.write("[Error] Can't setup data connection!" + str(error), color='Red')
 
   def login(self):
     if not self.connected:
@@ -89,7 +106,7 @@ class ClientThread(threading.Thread):
     if not self.connected or not self.loggedIn:
       return
     self.controlSock.send(b'pwd\r\n')
-    confirmed, reply = self.confirm(get_replay=True)
+    confirmed, reply = self.confirm(get_reply=True)
     if is_print: print(reply.split()[1])
     self.current_dir = reply.split()[1]
 
@@ -97,7 +114,7 @@ class ClientThread(threading.Thread):
     if not self.connected or not self.loggedIn:
       return
     self.controlSock.send(('cd %s\r\n' % path).encode(self.msg_coding))
-    confirmed, reply = self.confirm(get_replay=True)
+    confirmed, reply = self.confirm(get_reply=True)
     if confirmed: self.current_dir = reply.split()[1]
 
   def help(self):
@@ -109,7 +126,9 @@ class ClientThread(threading.Thread):
   def ls(self, cmd):
     if not self.connected or not self.loggedIn:
       return
+    self.EstablishDataConnection()
     dataSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
+    dataSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     dataSock.connect(self.dataAddr)
     self.controlSock.send('{} \r\n'.format(cmd).encode(self.msg_coding))
     time.sleep(0.5)  # Wait for connection to set up
@@ -132,22 +151,36 @@ class ClientThread(threading.Thread):
     if not self.connected or not self.loggedIn:
       return
     if os.path.exists(filename):
-      self.log.write('[Error] File Already Exists!', color='Red')
-      return
+      self.log.write('[Warning] File Already Exists!', color='Red')
+      proceed = input("Proceed [Y/n]:")
+      if proceed.lower() != "y" and proceed.lower() != "\r":
+        return
+    self.EstablishDataConnection()
     dataSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
     dataSock.connect(self.dataAddr)
     self.controlSock.send(('get %s\r\n' % filename).encode(self.msg_coding))
     fileOut = open(filename, 'wb')
     time.sleep(0.5)  # Wait for connection to set up
-    dataSock.setblocking(False)  # Set to non-blocking to detect connection close
+    # dataSock.setblocking(False)  # Set to non-blocking to detect connection close
+    time_starts = time.time()
+    timer = time.time()
+    data_length = 0
     while True:
       try:
         data = dataSock.recv(self.bufSize)
         if len(data) == 0:  # Connection close
           break
         fileOut.write(data)
-      except socket.error:  # Connection closed
+        data_length += len(data)
+        if time.time() - timer > 1:
+          self.log.write("downloading speed = {:.0f}Kb/s"
+                         .format(data_length / (1024 * (time.time() - time_starts))))
+          timer = time.time()
+      except socket.error as error:  # Connection closed
+        self.log.write("[Error] Socket Error occured, " + str(error), color='Red')
         break
+    self.log.write("Transmit compleate, average download speed = {:.0f}Kb/s"
+                   .format(data_length / (1024 * (time.time() - time_starts)) ))
     fileOut.close()
     dataSock.close()
     self.confirm()
@@ -155,12 +188,23 @@ class ClientThread(threading.Thread):
   def put(self, filename):
     if not self.connected or not self.loggedIn:
       return
-    if not os.path.exists(filename):
-      self.log.write('[Error] File not exists!', color='Red')
-    dataSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
-    dataSock.connect(self.dataAddr)
-    self.controlSock.send(('put %s\r\n' % filename).encode(self.msg_coding))
-    dataSock.send(open(filename, 'rb').read())
+    time_starts = time.time()
+    self.EstablishDataConnection()
+    try:
+      dataSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
+      dataSock.connect(self.dataAddr)
+      self.controlSock.send(('put %s\r\n' % filename).encode(self.msg_coding))
+      file_data = open(filename, 'rb').read()
+      sent = 0  # Important! large file might need several sendings
+      while sent < len(file_data):
+        bytes_send = dataSock.send(file_data[sent:])
+        sent += bytes_send
+      self.log.write("Transmit compleate, average upload speed = {}Kb/s"
+                     .format(len(file_data) / (1024 * (time.time() - time_starts)) ))
+    except IOError as error:
+      self.log.write("[Error] IO Error:" + str(error), color='Red')
+    except FileNotFoundError:
+      self.log.write("[Error] File not found.", color='Red')
     dataSock.close()
     self.confirm()
 
@@ -215,6 +259,6 @@ class ClientThread(threading.Thread):
 
 
 if __name__ == '__main__':
-  ClientThread("0.0.0.0", 23333).start()
+  ClientThread("10.108.211.48", 24678).start()
 
 
