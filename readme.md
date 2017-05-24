@@ -1,10 +1,10 @@
-# Simple FTP
+# File Transfer Protocol
 
-​	Simplest FTP protocal/tools implemented in Python. No further requirment except python3. Massive data trasnfer / multi-user login supported.
+​	Simple FTP tools implemented in Python **for educational purpose** 北京邮电大学计算机网络课程设计. No further requirment except python3. Massive data trasnfer and multi-user transactions are supported.
 
 ## Features
 
-- common commands and options are supported.
+- common commands and options.
 - detailed log tools.
 
 ## Demo

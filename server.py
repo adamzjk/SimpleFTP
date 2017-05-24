@@ -134,7 +134,6 @@ class ServerThread(threading.Thread):
   def _ls(self, cmd):
     if not self.login:
       self.ctr_socket.send(b'[Error] Not logged in.\r\n')
-    # elif self.data_socket is not None:  # Only PASV implemented
     else:
       dirs = os.listdir(os.getcwd())
       if len(cmd.split()) < 2 or cmd.split()[1] != '-a':
@@ -145,16 +144,12 @@ class ServerThread(threading.Thread):
       self.data_socket = None
       self.log.write("Transfer Successful, Close connection.")
       self.ctr_socket.send(b'Transfer Successful, Close connection.')
-    # else:
-    #   self.log.write("[Error] Can't open data connection", color = 'Red')
-    #   self.ctr_socket.send(b"[Error] Can't open data connection.")
 
   def _get(self, cmd):
     if not self.login:
       self.ctr_socket.send(b'[Error] Not logged in.')
     elif len(cmd.split()) < 2:
       self.ctr_socket.send(b'[Error] Syntax error in parameters or arguments.')
-    # elif self.data_socket is not None:  # Only PASV implemented
     else:
       programDir = os.getcwd()
       os.chdir(os.getcwd())
@@ -166,8 +161,8 @@ class ServerThread(threading.Thread):
         while sent < len(file_data):
           bytes_send = self.data_socket.send(file_data[sent:])
           sent += bytes_send
-        self.log.write("Transmit compleate, average upload speed = {:.0f}Kb/s"
-                       .format(len(file_data) / (1024 * (time.time() - time_starts)) ))
+        self.log.write("Transmit compleate, average upload speed = {:.3f}Mb/s"
+                       .format(len(file_data) / (1024 * 1024 * (time.time() - time_starts)) ))
       except IOError as error:
         self.log.write("IO Error "+str(error), color='Red')
         self.ctr_socket.send(b'[Error] IO Error')
@@ -178,9 +173,6 @@ class ServerThread(threading.Thread):
       self.log.write("Transfer Successful, Close connection.")
       self.ctr_socket.send(b'Transfer Successful, Close connection.')
       os.chdir(programDir)
-    # else:
-    #   self.log.write("[Error] Can't set up data connection", color='Red')
-    #   self.ctr_socket.send(b"[Error] Can't setup data connection.")
 
   def _put(self, cmd):
     if not self.login:
@@ -191,11 +183,9 @@ class ServerThread(threading.Thread):
       programDir = os.getcwd()
       os.chdir(os.getcwd())
       if os.path.exists(cmd.split()[1]):
-        ctr_socket.send(b'[Error] File Already Exists! Delete First!')
-        return
+        ctr_socket.send(b'[Warning] File Already Exists! Now gonna replace it!')
       fileOut = open(cmd.split()[1], 'wb')
       time.sleep(0.5)  # Wait for connection to set up
-      # self.data_socket.setblocking(False)  # Set to non-blocking to detect connection close
       time_starts = time.time()
       data_length = 0
       while True:
@@ -207,8 +197,8 @@ class ServerThread(threading.Thread):
           data_length += len(data)
         except socket.error:  # Connection closed
           break
-      self.log.write("Transmit compleate, average download speed = {:.0f}Kb/s"
-                     .format(data_length / (1024 * (time.time() - time_starts)) ))
+      self.log.write("Transmit compleate, average download speed = {:.3f}Mb/s"
+                     .format(data_length / (1024 * 1024 * (time.time() - time_starts)) ))
       fileOut.close()
       self.data_socket.close()
       self.data_socket = None
@@ -243,7 +233,6 @@ class ServerThread(threading.Thread):
       except OSError:
         self.ctr_socket.send(b'[Error] OS Error. No Such File')
 
-
   def _close(self):
     self.ctr_socket.send(b'Service closing control connection. Logged out if appropriate.')
     self.ctr_socket.close()
@@ -255,6 +244,11 @@ class ServerThread(threading.Thread):
     self.ctr_socket.close()
     self.log.write('Client disconnected.', self.cli_addr)
     self.keep_running = False
+
+  def assign_new_port(self):
+    listen_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0);
+    listen_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
 
   def run(self):
     self.ctr_socket.send(b'Connection Set!')

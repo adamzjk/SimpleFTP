@@ -152,8 +152,8 @@ class ClientThread(threading.Thread):
       return
     if os.path.exists(filename):
       self.log.write('[Warning] File Already Exists!', color='Red')
-      proceed = input("Proceed [Y/n]:")
-      if proceed.lower() != "y" and proceed.lower() != "\r":
+      proceed = input("Proceed [Y/n]:").lower()
+      if proceed != "y":
         return
     self.EstablishDataConnection()
     dataSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
@@ -173,14 +173,14 @@ class ClientThread(threading.Thread):
         fileOut.write(data)
         data_length += len(data)
         if time.time() - timer > 1:
-          self.log.write("downloading speed = {:.0f}Kb/s"
-                         .format(data_length / (1024 * (time.time() - time_starts))))
+          self.log.write("downloading speed = {:.3f}Mb/s"
+                         .format(data_length / (1024 * 1024 * (time.time() - time_starts))))
           timer = time.time()
       except socket.error as error:  # Connection closed
         self.log.write("[Error] Socket Error occured, " + str(error), color='Red')
         break
-    self.log.write("Transmit compleate, average download speed = {:.0f}Kb/s"
-                   .format(data_length / (1024 * (time.time() - time_starts)) ))
+    self.log.write("Transmit compleate, average download speed = {:.3f}Mb/s"
+                   .format(data_length / (1024 * 1024 * (time.time() - time_starts)) ))
     fileOut.close()
     dataSock.close()
     self.confirm()
@@ -199,8 +199,8 @@ class ClientThread(threading.Thread):
       while sent < len(file_data):
         bytes_send = dataSock.send(file_data[sent:])
         sent += bytes_send
-      self.log.write("Transmit compleate, average upload speed = {}Kb/s"
-                     .format(len(file_data) / (1024 * (time.time() - time_starts)) ))
+      self.log.write("Transmit compleate, average upload speed = {:.3f}Mb/s"
+                     .format(len(file_data) / (1024 * 1024 * (time.time() - time_starts)) ))
     except IOError as error:
       self.log.write("[Error] IO Error:" + str(error), color='Red')
     except FileNotFoundError:
@@ -251,7 +251,7 @@ class ClientThread(threading.Thread):
         elif cmdHead == 'debug':
           self.log.screen_print = int(cmd.split()[1])
         else:
-          self.log.write('unknown command' + cmd, color='Red')
+          self.log.write('unknown command: ' + cmd, color='Red')
       except IndexError:
         self.log.write('[Error] Too few argument', color='Red')
       except ValueError:
