@@ -55,28 +55,12 @@ class ClientThread(threading.Thread):
     if self.confirm():
       self.connected = True
       self.controlSock.settimeout(3)  # Timeout 1 second
-      # self.controlSock.send(b'establish')
-      # confirmed, reply = self.confirm(get_reply=True)
-      # if confirmed:
-      #   try:
-      #     # m = re.search(r'(\d+).(\d+).(\d+).(\d+):(\d+),(\d+)', reply)
-      #     # self.dataAddr = (m.group(1) + '.' + m.group(2) + '.' + m.group(3) +
-      #     #                  '.' + m.group(4), int(m.group(5)) * 256 + int(m.group(6)))
-      #     m = re.search(r'(\d+).(\d+).(\d+).(\d+):(\d+)', reply)
-      #     self.dataAddr = (m.group(1) + '.' + m.group(2) + '.' + m.group(3) +
-      #                      '.' + m.group(4), int(m.group(5)))
-      #     self.log.write("Log up data connection")
-      #   except:
-      #     self.log.write("[Error] Can't setup data connection!" + str(sys.exc_info()[0]), color='Red')
 
   def EstablishDataConnection(self):
     self.controlSock.send(b'establish')
     confirmed, reply = self.confirm(get_reply=True)
     if confirmed:
       try:
-        # m = re.search(r'(\d+).(\d+).(\d+).(\d+):(\d+),(\d+)', reply)
-        # self.dataAddr = (m.group(1) + '.' + m.group(2) + '.' + m.group(3) +
-        #                  '.' + m.group(4), int(m.group(5)) * 256 + int(m.group(6)))
         m = re.search(r'(\d+).(\d+).(\d+).(\d+):(\d+)', reply)
         self.dataAddr = (m.group(1) + '.' + m.group(2) + '.' + m.group(3) +
                          '.' + m.group(4), int(m.group(5)))
@@ -259,6 +243,6 @@ class ClientThread(threading.Thread):
 
 
 if __name__ == '__main__':
-  ClientThread("10.108.211.48", 24678).start()
+  ClientThread("0.0.0.0", 24678).start()
 
 

@@ -7,36 +7,6 @@ import shutil
 from logtools import LogTool
 
 
-# class DataSocketListingThread(threading.Thread):
-#   """ This function/thread is to make an as """
-#   def __init__(self, server):
-#     super(DataSocketListingThread, self).__init__()
-#     assert type(server) is ServerThread
-#     self.daemon = True  # If main thread exit, this thread exit too
-#     self.server = server
-#     self.log = server.log
-#     self.listenSock = server.data_listen_socket
-#
-#   def run(self):
-#     self.listenSock.settimeout(1.0)  # Check for every 1 second
-#     while True:
-#       try: (dataSock, clientAddr) = self.listenSock.accept()
-#       except socket.timeout:
-#         continue
-#       except socket.error as error:  # Stop when socket closes
-#         self.log.write('Data connection closed' + str(error), self.server.cli_addr)
-#         break
-#       else:
-#         if self.server.data_socket is not None:  # Existing data connection not closed, cannot accept
-#           dataSock.close()
-#           self.log.write('Data connection refused from %s:%d.' %
-#                          (clientAddr[0], clientAddr[1]), self.server.cli_addr)
-#         else:
-#           self.server.data_socket = dataSock
-#           self.log.write('Data connection accpted from %s:%d.' %
-#                          (clientAddr[0], clientAddr[1]), self.server.cli_addr)
-
-
 class ServerThread(threading.Thread):
   ''' FTP server handler '''
 
@@ -60,7 +30,7 @@ class ServerThread(threading.Thread):
     # 3, data socket for data transfering
     self.data_listen_socket = None
     self.data_socket = None
-    self.data_addr = '10.108.211.48'
+    self.data_addr = '0.0.0.0'
     self.data_port = None
 
     # 4, info and functions
@@ -77,18 +47,12 @@ class ServerThread(threading.Thread):
     self.data_listen_socket.bind((self.data_addr, 0)) # select a port for data connection
     self.data_port = self.data_listen_socket.getsockname()[1]
     self.data_listen_socket.listen(99)
-    # DataSocketListingThread(self).start()
-    # time.sleep(0.5)  # Wait for connection to set up
-    # self.ctr_socket.send(('%s.%s.%s.%s:%d,%d\r\n' % (
-    #   self.data_addr.split('.')[0], self.data_addr.split('.')[1], self.data_addr.split('.')[2],
-    #   self.data_addr.split('.')[3], int(self.data_port / 256), self.data_port % 256)).encode(self.msg_encode))
     self.ctr_socket.send(('%s.%s.%s.%s:%d\r\n' % (
       self.data_addr.split('.')[0], self.data_addr.split('.')[1], self.data_addr.split('.')[2],
       self.data_addr.split('.')[3], int(self.data_port))).encode(self.msg_encode))
     (self.data_socket, self.cli_addr) = self.data_listen_socket.accept()
     self.log.write('Data connection accpted from %s:%d.' %
                    (self.cli_addr[0], self.cli_addr[1]), self.cli_addr)
-
 
   def _login(self, cmd):
     if len(cmd.split()) < 2:
@@ -163,15 +127,15 @@ class ServerThread(threading.Thread):
           sent += bytes_send
         self.log.write("Transmit compleate, average upload speed = {:.3f}Mb/s"
                        .format(len(file_data) / (1024 * 1024 * (time.time() - time_starts)) ))
+        self.log.write("Transfer Successful, Close connection.")
+        self.ctr_socket.send(b'Transfer Successful, Close connection.')
       except IOError as error:
         self.log.write("IO Error "+str(error), color='Red')
-        self.ctr_socket.send(b'[Error] IO Error')
+        self.ctr_socket.send(b'[Error] IO Error.')
       except FileNotFoundError:
         self.ctr_socket.send(b'[Error] File Not Found!')
       self.data_socket.close()
       self.data_socket = None
-      self.log.write("Transfer Successful, Close connection.")
-      self.ctr_socket.send(b'Transfer Successful, Close connection.')
       os.chdir(programDir)
 
   def _put(self, cmd):
@@ -248,7 +212,6 @@ class ServerThread(threading.Thread):
   def assign_new_port(self):
     listen_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0);
     listen_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
 
   def run(self):
     self.ctr_socket.send(b'Connection Set!')
